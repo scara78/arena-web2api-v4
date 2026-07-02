@@ -15,23 +15,30 @@ LABEL org.opencontainers.image.title="arena-web2api" \
       org.opencontainers.image.source="https://github.com/tenmay/arena-web2api" \
       org.opencontainers.image.licenses="MIT"
 
-# non-root user
+# Copy dependencies first to get playwright CLI
+COPY --from=builder /install /usr/local
+
+# Install Playwright system dependencies as root
+RUN apt-get update && \
+    playwright install-deps chromium && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create non-root user and app directory
 RUN useradd --create-home --uid 1000 arena
 WORKDIR /app
 
-# copy deps
-COPY --from=builder /install /usr/local
-
-# copy app
+# Copy app files
 COPY --chown=arena:arena . .
 
-# data dir for conversation persistence
-RUN mkdir -p /app/data && chown arena:arena /app/data
+# Setup data directory and Playwright browsers directory with correct permissions
+ENV PLAYWRIGHT_BROWSERS_PATH=/var/lib/pw-browsers
+RUN mkdir -p /app/data /var/lib/pw-browsers && \
+    chown -R arena:arena /app/data /var/lib/pw-browsers
+
 USER arena
-# Configure Playwright path and install Chromium + system dependencies
-ENV PLAYWRIGHT_BROWSERS_PATH=/tmp/pw-browsers
+
+# Install Chromium browser binaries
 RUN playwright install chromium
-RUN playwright install-deps chromium
 
 ENV HOST=0.0.0.0 \
     PORT=8000 \

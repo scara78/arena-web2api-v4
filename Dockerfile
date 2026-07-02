@@ -28,6 +28,10 @@ COPY --chown=arena:arena . .
 # data dir for conversation persistence
 RUN mkdir -p /app/data && chown arena:arena /app/data
 USER arena
+# Configure Playwright path and install Chromium + system dependencies
+ENV PLAYWRIGHT_BROWSERS_PATH=/tmp/pw-browsers
+RUN playwright install chromium
+RUN playwright install-deps chromium
 
 ENV HOST=0.0.0.0 \
     PORT=8000 \
